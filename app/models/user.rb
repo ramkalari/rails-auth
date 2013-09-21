@@ -6,9 +6,16 @@ class User < ActiveRecord::Base
 	validates_presence_of :password, :on => :create
 	validates_presence_of :email
 	validates_uniqueness_of :email
+	before_create {generate_token(:auth_token)}
 
-	def self.authenticate(email, password)
-		user = find_by_email(email)
+	def generate_token(column)
+		begin
+			self[column] = SecureRandom.urlsafe_base64
+		end while User.exists?(column => self[column])
+	end
+
+	def authenticate(email, password)
+		user = User.find_by_email(email)
 		if user && user.password_hash == BCrypt::Engine.hash_secret(password, user.password_salt)
 			user
 		else
